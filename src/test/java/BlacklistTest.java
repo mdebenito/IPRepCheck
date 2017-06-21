@@ -28,7 +28,8 @@ public class BlacklistTest implements IPRepCheckListener {
 
     @Test
     public void areBlacklistedTest(){
-        List<String> ips = new ArrayList<String>();
+
+        List<String> ips = new ArrayList<>();
 
         for(int i=0; i<9;i++) {
             ips.add("217.175.8.10" + i);

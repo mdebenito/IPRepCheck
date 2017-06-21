@@ -7,11 +7,10 @@ import java.util.regex.Pattern;
 /**
  * Created by Mario de Benito on 19/06/2017.
  */
-public class BlacklistEntry {
+class BlacklistEntry {
     private final boolean isRange;
-    private String raw;
+    private final String raw;
     private SubnetUtils.SubnetInfo subnetInfo;
-    private SubnetUtils snu;
 
     public BlacklistEntry(String raw) throws InvalidBlacklistEntryException {
         this.raw = raw;
@@ -19,7 +18,7 @@ public class BlacklistEntry {
         if(!isValidIp(raw) && !isRange)
             throw new InvalidBlacklistEntryException(raw);
         if(isRange){
-            snu = new SubnetUtils(this.raw);
+            SubnetUtils snu = new SubnetUtils(this.raw);
             subnetInfo = snu.getInfo();
         }
 
@@ -45,13 +44,11 @@ public class BlacklistEntry {
     public boolean equals(Object other){
         if(!(other instanceof  BlacklistEntry))
             return false;
-        if(((BlacklistEntry) other).getRaw().equalsIgnoreCase(this.raw))
-            return true;
+        return ((BlacklistEntry) other).getRaw().equalsIgnoreCase(this.raw);
 
-        return false;
     }
 
-    public String getRaw() {
+    private String getRaw() {
         return raw;
     }
 
@@ -90,7 +87,7 @@ public class BlacklistEntry {
             pattern = Pattern.compile(IPV6_PATTERN);
             return pattern.matcher(line).matches();
         }
-        return ipV4;
+        return true;
     }
 
     /**

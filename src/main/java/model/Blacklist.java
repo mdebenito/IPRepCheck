@@ -12,24 +12,24 @@ import java.util.List;
  * Created by Mario de Benito on 19/06/2017.
  */
 public class Blacklist {
-    private String url;
+    private final String url;
     private String name;
     private URL parsedURL;
     private List<BlacklistEntry> entries;
-    private static String COMMENT_CHAR="#";
+    private static final String COMMENT_CHAR="#";
     private boolean isLoaded;
 
     public Blacklist(String url) throws MalformedURLException {
         this.url = url;
         this.name = url;
         this.parsedURL = new URL(this.url);
-        this.entries = new ArrayList<BlacklistEntry>();
+        this.entries = new ArrayList<>();
     }
     public Blacklist(String url, String name) throws MalformedURLException {
         this.url = url;
         this.name = name;
         this.parsedURL = new URL(this.url);
-        this.entries = new ArrayList<BlacklistEntry>();
+        this.entries = new ArrayList<>();
     }
 
     public void load() throws IOException {

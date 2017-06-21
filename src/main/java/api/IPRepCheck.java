@@ -6,35 +6,37 @@ import model.BlacklistNotLoadedException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
 
 /**
  * Created by Mario de Benito on 19/06/2017.
  */
 public class IPRepCheck {
 
-    public static final int MAX_THREADS = 8;
-    private static int CURRENT_THREADS = 0;
+    private static final int MAX_THREADS = 8;
 
-    private List<Blacklist> blacklists;
+    private final List<Blacklist> blacklists;
+    private final ThreadPoolExecutor executor;
 
     public void addBlacklist(Blacklist bl) throws IOException {
         bl.load();
         this.blacklists.add(bl);
     }
 
-    private List<IPRepCheckListener> listeners;
+    private final List<IPRepCheckListener> listeners;
 
     public void addListener(IPRepCheckListener l){
         listeners.add(l);
     }
 
     public IPRepCheck(){
-        this.blacklists = new ArrayList<Blacklist>();
-        this.listeners = new ArrayList<IPRepCheckListener>();
+        this.blacklists = new ArrayList<>();
+        this.listeners = new ArrayList<>();
+        executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(MAX_THREADS);
     }
 
-    protected final void isBlacklistedCallback(String ipAddress,Blacklist bl,boolean blacklisted){
-        CURRENT_THREADS--;
+    private void isBlacklistedCallback(String ipAddress, Blacklist bl, boolean blacklisted){
         for(IPRepCheckListener l : listeners){
             l.isBlacklisted(ipAddress,bl,blacklisted);
         }
@@ -42,26 +44,15 @@ public class IPRepCheck {
 
     private void isBlacklistedMT(final String ipAddress){
         for(final Blacklist bl : blacklists){
-            Thread worker = new Thread() {
-
-                public void run() {
-                    try {
-                        boolean blacklisted = bl.isBlacklisted(ipAddress);
-                        isBlacklistedCallback(ipAddress,bl,blacklisted);
-                    } catch (BlacklistNotLoadedException e) {
-                        e.printStackTrace();
-                    }
-                }
-            };
-            while(CURRENT_THREADS>=MAX_THREADS) {
+            Thread worker = new Thread(() -> {
                 try {
-                    Thread.sleep(500);
-                } catch (InterruptedException e) {
+                    boolean blacklisted = bl.isBlacklisted(ipAddress);
+                    isBlacklistedCallback(ipAddress,bl,blacklisted);
+                } catch (BlacklistNotLoadedException e) {
                     e.printStackTrace();
                 }
-            }
-            CURRENT_THREADS++;
-            worker.start();
+            });
+            executor.execute(worker);
         }
     }
     public boolean isBlacklisted(String ipAddress){
@@ -81,24 +72,16 @@ public class IPRepCheck {
     }
     public void areBlacklisted(final List<String> ipAddresses){
         int count = 0;
+
         for(final String ipAddress : ipAddresses){
             count++;
-            publishProgress(count,ipAddresses.size());
-            Thread worker = new Thread() {
-                public void run() {
-                    isBlacklistedMT(ipAddress);
-                    CURRENT_THREADS--;
-                }
-            };
-            while(CURRENT_THREADS>=MAX_THREADS) {
-                try {
-                    Thread.sleep(500);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-            CURRENT_THREADS++;
-            worker.start();
+            int finalCount = count;
+            Thread worker = new Thread(() -> {
+                isBlacklistedMT(ipAddress);
+                publishProgress(finalCount,ipAddresses.size());
+
+            });
+           executor.execute(worker);
         }
 
     }
